@@ -1,0 +1,5 @@
+Build/* linguist-vendored
+ProjectSettings/* linguist-vendored
+Packages/* linguist-vendored
+UserSettings/* linguist-vendored
+Assets/TextMesh Pro/* linguist-vendored
