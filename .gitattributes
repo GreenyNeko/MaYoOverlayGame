@@ -1,3 +1,2 @@
 # ignore files from textmesh pro in statistic
-#Assets/TextMesh-Pro/* -linguist-detectable
-Assets/TextMesh-Pro/* linguist-vendored
+Assets/TextMesh?Pro/* linguist-vendored
