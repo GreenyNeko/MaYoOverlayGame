@@ -4,14 +4,20 @@ using UnityEngine;
 
 public class KeyboardHook : MonoBehaviour
 {
+    // Import the function to create hooks
     [DllImport("user32.dll")]
     protected static extern IntPtr SetWindowsHookEx(HookType code, HookProc func, IntPtr hInstance, int threadID);
 
+    // import the function to remove hooks
     [DllImport("user32.dll")]
     protected static extern int UnhookWindowsHookEx(IntPtr hHook);
+
+    // import the function to pass from one to the other hook
     [DllImport("user32.dll")]
     protected static extern int CallNextHookEx(IntPtr hHook, int code, IntPtr wParam, IntPtr lParam);
 
+
+    // the types of hooks we have at our disposal
     protected enum HookType : int
     {
         WH_JOURNALRECORD = 0,
@@ -31,6 +37,7 @@ public class KeyboardHook : MonoBehaviour
         WH_MOUSE_LL = 14
     }
 
+    // the struct for global keyboard hooks defined by windows
     struct KBDLLHOOKSTRUCT
     {
         public uint vkCode;
@@ -40,10 +47,11 @@ public class KeyboardHook : MonoBehaviour
         public UIntPtr dwExtraInfo;
     }
 
-    static protected IntPtr hHook = IntPtr.Zero;
-    private static bool[] keyStates = new bool[4];
-    protected delegate int HookProc(int code, IntPtr wParam, IntPtr lParam);
+    static protected IntPtr hHook = IntPtr.Zero;                                // null pointers woo
+    private static bool[] keyStates = new bool[4];                              // keep track of the state of our keys
+    protected delegate int HookProc(int code, IntPtr wParam, IntPtr lParam);    // delegate for our low level keyboard function
 
+    // create the hook
     protected bool InitHook()
     {
         if (hHook == IntPtr.Zero)
@@ -53,6 +61,7 @@ public class KeyboardHook : MonoBehaviour
         return hHook != IntPtr.Zero;
     }
 
+    // remove the hook
     protected void DestroyHook()
     {
         if (hHook != IntPtr.Zero)
@@ -62,44 +71,55 @@ public class KeyboardHook : MonoBehaviour
         }
     }
 
+    // create the hook and init the key states
     void Start()
     {
         bool result = InitHook();
-        Debug.Log(result);
         for(int i = 0; i < keyStates.Length; i++)
         {
             keyStates[i] = false;
         }
     }
 
+    // OnDisable should be called before OnDestroy?
     private void OnDestroy()
     {
         //DestroyHook();
     }
 
+    // remove the hook when this object is disabled
     private void OnDisable()
     {
         DestroyHook();
-        Debug.Log("disabled");
     }
 
+    // add the hook when the object is enabled, superseded by Start(?)
     private void OnEnable()
     {
         //InitHook(LowLevelKeyboardProc);
     }
 
+    // Our low level keyboard procedure
     [AOT.MonoPInvokeCallback(typeof(HookProc))]
     private static int LowLevelKeyboardProc(int code, IntPtr wParam, IntPtr lParam)
     {
+        // ignore if code is negative, I forgot exactly why, but events with negative codes is not what we want
         if (code < 0)
         {
+            // pass it to the next hook
             return CallNextHookEx(hHook, code, wParam, lParam);
         }
-
+        // copy data over to our struct
         KBDLLHOOKSTRUCT hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
 
-        
+        // do tings respective to the key that has been pressed
+        // we check if the key has been recently pressed or has already been pressed and whether or not it has been released or pressed
+        // 0x0100 is down event and 0x0101 is up event
+        // 0x61 is numpad_1, 0x62 is numpad_2, 0x63 is numpad_3, 0x1b is escape
+        // we call the respective event in game manager then
 
+        // TODO: don't call functions inside of here that do stuff but instead grab the content and return to prevent being shutdowned by windows for not returning fast enough
+        // that approach prevents crashes and makes debugging easier
         switch (hookStruct.vkCode)
         {
             case 0x61:
@@ -160,8 +180,7 @@ public class KeyboardHook : MonoBehaviour
                 break;
         }
         
-
+        // return and pass to the next hook
         return CallNextHookEx(hHook, 0, wParam, lParam);
-
     }
 }
