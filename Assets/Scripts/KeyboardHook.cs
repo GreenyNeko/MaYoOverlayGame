@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -47,9 +48,109 @@ public class KeyboardHook : MonoBehaviour
         public UIntPtr dwExtraInfo;
     }
 
+    public static KeyboardHook Instance;                                        // Access from anywhere similar to input module
     static protected IntPtr hHook = IntPtr.Zero;                                // null pointers woo
-    private static bool[] keyStates = new bool[4];                              // keep track of the state of our keys
     protected delegate int HookProc(int code, IntPtr wParam, IntPtr lParam);    // delegate for our low level keyboard function
+
+    // State 0 = not pressed
+    // State 1 = recently pressed
+    // State 2 = held down
+    // State 3 = recently released
+    // State 4 = recently released but transitioning to 0
+    private static Dictionary<uint,uint> keyStates;                             // contains states of any keys that have been pressed
+
+    // create the hook and init the key states
+    void Start()
+    {
+        // init
+        Instance = this;
+        keyStates = new Dictionary<uint, uint>();
+        bool result = InitHook();
+    }
+
+    // OnDisable should be called before OnDestroy?
+    private void OnDestroy()
+    {
+        //DestroyHook();
+    }
+
+    // remove the hook when this object is disabled
+    private void OnDisable()
+    {
+        DestroyHook();
+    }
+
+    // add the hook when the object is enabled, superseded by Start(?)
+    private void OnEnable()
+    {
+        //InitHook(LowLevelKeyboardProc);
+    }
+
+    // reset
+    private void Update()
+    {
+        foreach (uint key in new List<uint>(keyStates.Keys))
+        {
+            if (keyStates[key] == 4)
+            {
+                keyStates[key] = 0;
+            }
+        }
+    }
+
+    // flag to reset
+    private void LateUpdate()
+    {
+        // update state or flag to reset
+        // making sure that up and down are only called once
+        foreach(uint key in new List<uint>(keyStates.Keys))
+        {
+            if(keyStates[key] == 3)
+            {
+                keyStates[key] = 4;
+            }
+            else if(keyStates[key] == 1)
+            {
+                keyStates[key] = 2;
+            }
+        }
+    }
+
+    /**
+     * Returns whether or not the given virtual key has been pressed
+     */
+    public bool GetKey(uint vk)
+    {
+        if(keyStates.ContainsKey(vk))
+        {
+            return keyStates[vk] == 1;
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not the given virtual key is held down
+     */
+    public bool GetKeyDown(uint vk)
+    {
+        if (keyStates.ContainsKey(vk))
+        {
+            return keyStates[vk] == 1 || keyStates[vk] == 2;
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not the given virtual key has been released
+     */
+    public bool GetKeyUp(uint vk)
+    {
+        if (keyStates.ContainsKey(vk))
+        {
+            return keyStates[vk] == 3 || keyStates[vk] == 4;
+        }
+        return false;
+    }
 
     // create the hook
     protected bool InitHook()
@@ -71,34 +172,6 @@ public class KeyboardHook : MonoBehaviour
         }
     }
 
-    // create the hook and init the key states
-    void Start()
-    {
-        bool result = InitHook();
-        for(int i = 0; i < keyStates.Length; i++)
-        {
-            keyStates[i] = false;
-        }
-    }
-
-    // OnDisable should be called before OnDestroy?
-    private void OnDestroy()
-    {
-        //DestroyHook();
-    }
-
-    // remove the hook when this object is disabled
-    private void OnDisable()
-    {
-        DestroyHook();
-    }
-
-    // add the hook when the object is enabled, superseded by Start(?)
-    private void OnEnable()
-    {
-        //InitHook(LowLevelKeyboardProc);
-    }
-
     // Our low level keyboard procedure
     [AOT.MonoPInvokeCallback(typeof(HookProc))]
     private static int LowLevelKeyboardProc(int code, IntPtr wParam, IntPtr lParam)
@@ -112,72 +185,37 @@ public class KeyboardHook : MonoBehaviour
         // copy data over to our struct
         KBDLLHOOKSTRUCT hookStruct = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
 
-        // do tings respective to the key that has been pressed
-        // we check if the key has been recently pressed or has already been pressed and whether or not it has been released or pressed
-        // 0x0100 is down event and 0x0101 is up event
-        // 0x61 is numpad_1, 0x62 is numpad_2, 0x63 is numpad_3, 0x1b is escape
-        // we call the respective event in game manager then
+        // update the keycode according to the keyboard event that happened
 
-        // TODO: don't call functions inside of here that do stuff but instead grab the content and return to prevent being shutdowned by windows for not returning fast enough
-        // that approach prevents crashes and makes debugging easier
-        switch (hookStruct.vkCode)
+        // key is down
+        if (wParam.ToInt64() == 0x0100)
         {
-            case 0x61:
-                if(wParam.ToInt64() == 0x0100)
+            if (keyStates.ContainsKey(hookStruct.vkCode))
+            {
+                if (keyStates[hookStruct.vkCode] == 1 || keyStates[hookStruct.vkCode] == 2)
                 {
-                    if(!keyStates[0])
-                    {
-                        GameManager.Instance.OnCorrect();
-                        keyStates[0] = true;
-                    }
+                    keyStates[hookStruct.vkCode] = 2;
                 }
-                else if(wParam.ToInt64() == 0x0101)
+                else
                 {
-                    keyStates[0] = false;
+                    keyStates[hookStruct.vkCode] = 1;
                 }
-                break;
-            case 0x62:
-                if (wParam.ToInt64() == 0x0100)
-                {
-                    if (!keyStates[1])
-                    {
-                        GameManager.Instance.OnSloppy();
-                        keyStates[1] = true;
-                    }
-                }
-                else if (wParam.ToInt64() == 0x0101)
-                {
-                    keyStates[1] = false;
-                }
-                break;
-            case 0x63:
-                if (wParam.ToInt64() == 0x0100)
-                {
-                    if (!keyStates[2])
-                    {
-                        GameManager.Instance.OnMiss();
-                        keyStates[2] = true;
-                    }
-                }
-                else if (wParam.ToInt64() == 0x0101)
-                {
-                    keyStates[2] = false;
-                }
-                break;
-            case 0x1B:
-                if (wParam.ToInt64() == 0x0100)
-                {
-                    if (!keyStates[3])
-                    {
-                        GameManager.Instance.OnEnd();
-                        keyStates[3] = true;
-                    }
-                }
-                else if (wParam.ToInt64() == 0x0101)
-                {
-                    keyStates[3] = false;
-                }
-                break;
+            }
+            else
+            {
+                keyStates.Add(hookStruct.vkCode, 1);
+            }
+        }
+        else if (wParam.ToInt64() == 0x0101)
+        {
+            if(keyStates.ContainsKey(hookStruct.vkCode))
+            {
+                keyStates[hookStruct.vkCode] = 3;
+            }
+            else
+            {
+                keyStates.Add(hookStruct.vkCode, 3);
+            } 
         }
         
         // return and pass to the next hook

@@ -64,6 +64,37 @@ public class GameManager : MonoBehaviour
         UpdateUI();
     }
 
+    // handle raw inputs
+    void Update()
+    {
+        if(running)
+        {
+            if(KeyboardHook.Instance.GetKey(0x61))
+            {
+                OnCorrect();
+            }
+            if(KeyboardHook.Instance.GetKey(0x62))
+            {
+                OnSloppy();
+            }
+            if(KeyboardHook.Instance.GetKey(0x63))
+            {
+                OnMiss();
+            }
+            if(KeyboardHook.Instance.GetKey(0x1B))
+            {
+                OnEnd();
+            }
+        }
+        else
+        {
+            if(KeyboardHook.Instance.GetKey(0x1B))
+            {
+                OnEnd();
+            }
+        }
+    }
+
     /**
      * Tells the game manager a kanji has been read correct
      */
