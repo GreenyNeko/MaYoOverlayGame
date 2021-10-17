@@ -29,5 +29,4 @@ You can leave the end result screen by pressing *Esc* again, which will reset th
 ## To-Do
 
 Version 1.0:
-* Decouple the low level key hook off of the program to ensure that it doesn't cause windows to shut the program down
 * Implement a configuration for the keys
