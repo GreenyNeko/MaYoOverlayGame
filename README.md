@@ -19,9 +19,5 @@ In this case I count all other Kanji in the compound word that I would know as s
 
 ## Controls
 
-Currently the keys are hard coded.
-When you press *1* on the numpad the overlay will count that as a correct hit.
-Pressing *2* on the numpad will be counted as a sloppy hit,
-and pressing *3* on the numpad will count as a miss.
-When you press *Esc* at any point it will show the end result screen.
-You can leave the end result screen by pressing *Esc* again, which will reset the progress and scores.
+The default keys are the numpad 1 for correct, 2 for sloppy, 3 for miss (when numpad keys are enabled) and escape for end or reset game.
+However the controls can be changed in the preferences.ini given the virtual codes, which can be found at https://cherrytree.at/misc/vk.htm for example.
