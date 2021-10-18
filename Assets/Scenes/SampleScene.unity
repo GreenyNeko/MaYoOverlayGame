@@ -246,6 +246,7 @@ GameObject:
   - component: {fileID: 52873474}
   - component: {fileID: 52873477}
   - component: {fileID: 52873476}
+  - component: {fileID: 52873478}
   m_Layer: 0
   m_Name: ControllersAndHandlers
   m_TagString: Untagged
@@ -316,7 +317,20 @@ MonoBehaviour:
   textEndMiss: {fileID: 1525049726}
   textEndCombo: {fileID: 1814739124}
   textEndAccuracy: {fileID: 916205851}
+  settingsLoader: {fileID: 52873478}
   historyHandler: {fileID: 900230283}
+--- !u!114 &52873478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 52873473}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c71a342c10d463b48ba0203ec383397c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &101550533
 GameObject:
   m_ObjectHideFlags: 0

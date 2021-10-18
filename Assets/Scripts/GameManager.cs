@@ -24,6 +24,9 @@ public class GameManager : MonoBehaviour
     public TMPro.TMP_Text textEndCombo;
     public TMPro.TMP_Text textEndAccuracy;
 
+    // Get key configuration
+    public SettingsLoader settingsLoader;
+
     // instance to always access the game manager from wherever we need
     public static GameManager Instance
     {
@@ -43,6 +46,12 @@ public class GameManager : MonoBehaviour
     private int maxCombo;       // the highest the combo has been
     private bool running;       // whether or not the game is running
 
+    // predefined keys in case it can't load
+    private int keyCodeCorrect = 0x61;  // numpad 1
+    private int keyCodeSloppy = 0x62;   // numpad 2
+    private int keyCodeMiss = 0x63;     // numpad 3
+    private int keyCodeEnd = 0x1B;      // escape
+
     // Start is called before the first frame update
     void Start()
     {
@@ -60,6 +69,18 @@ public class GameManager : MonoBehaviour
         // don't show end screen, show game screen
         overlayDone.SetActive(false);
         overlayRunning.SetActive(true);
+        if(settingsLoader.HasLoaded())
+        {
+            int.TryParse(settingsLoader.GetSetting("Controls", "key_correct"), out keyCodeCorrect);
+            int.TryParse(settingsLoader.GetSetting("Controls", "key_sloppy"), out keyCodeSloppy);
+            int.TryParse(settingsLoader.GetSetting("Controls", "key_miss"), out keyCodeMiss);
+            int.TryParse(settingsLoader.GetSetting("Controls", "key_end_game"), out keyCodeEnd);
+        }
+        else
+        {
+            Debug.LogWarning(".ini not loaded!");
+        }
+        
         // pre setup the UI
         UpdateUI();
     }
@@ -69,19 +90,19 @@ public class GameManager : MonoBehaviour
     {
         if(running)
         {
-            if(KeyboardHook.Instance.GetKey(0x61))
+            if(KeyboardHook.Instance.GetKey((uint)keyCodeCorrect))
             {
                 OnCorrect();
             }
-            if(KeyboardHook.Instance.GetKey(0x62))
+            if(KeyboardHook.Instance.GetKey((uint)keyCodeSloppy))
             {
                 OnSloppy();
             }
-            if(KeyboardHook.Instance.GetKey(0x63))
+            if(KeyboardHook.Instance.GetKey((uint)keyCodeMiss))
             {
                 OnMiss();
             }
-            if(KeyboardHook.Instance.GetKey(0x1B))
+            if(KeyboardHook.Instance.GetKey((uint)keyCodeEnd))
             {
                 OnEnd();
             }
